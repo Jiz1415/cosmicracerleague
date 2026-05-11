@@ -1,0 +1,99 @@
+import React, { useState } from 'react';
+import { useGameState } from '../game/useGameState';
+import { useSubmitScore, getGetLeaderboardQueryKey } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Leaderboard } from '../game/Leaderboard';
+
+export default function Finish() {
+  const { state, timeMs, resetGame } = useGameState();
+  const [playerName, setPlayerName] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const queryClient = useQueryClient();
+  const submitScore = useSubmitScore();
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = Math.floor((ms % 1000) / 10);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!playerName.trim() || submitted) return;
+
+    submitScore.mutate(
+      { 
+        data: { 
+          playerName: playerName.trim().substring(0, 20), 
+          raceTimeMs: timeMs, 
+          laps: 3, 
+          track: "Neon Circuit" 
+        } 
+      },
+      {
+        onSuccess: () => {
+          setSubmitted(true);
+          queryClient.invalidateQueries({ queryKey: getGetLeaderboardQueryKey() });
+        }
+      }
+    );
+  };
+
+  if (state !== 'FINISHED') return null;
+
+  return (
+    <div className="w-screen h-screen bg-[#050510] flex flex-col items-center justify-center relative overflow-hidden font-sans">
+      <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ff00ff 0%, transparent 50%)' }} />
+      
+      <div className="relative z-10 flex flex-col items-center max-w-2xl w-full px-6">
+        <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-violet-300 to-violet-600 mb-2 font-display text-center" style={{ textShadow: '0 0 40px rgba(255,0,255,0.4)' }}>
+          RACE COMPLETE
+        </h1>
+        
+        <div className="text-5xl text-white font-mono tracking-wider font-bold mb-12 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 px-8 py-4 rounded-xl border border-violet-500/30">
+          {formatTime(timeMs)}
+        </div>
+
+        {!submitted ? (
+          <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col gap-4 mb-12">
+            <div>
+              <label className="block text-violet-400 text-sm tracking-widest font-bold mb-2 uppercase">Pilot Name</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                maxLength={20}
+                placeholder="ENTER NAME"
+                className="w-full bg-black/60 border-2 border-violet-500/50 rounded-lg px-4 py-3 text-white font-bold tracking-wider focus:outline-none focus:border-violet-400 focus:shadow-[0_0_15px_rgba(255,0,255,0.4)] transition-all uppercase"
+                required
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={submitScore.isPending || !playerName.trim()}
+              className="w-full px-8 py-4 bg-violet-600 text-white font-bold text-xl tracking-widest rounded-lg hover:bg-violet-500 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,0,255,0.6)] uppercase disabled:opacity-50 disabled:cursor-not-allowed font-display mt-2"
+            >
+              {submitScore.isPending ? 'SUBMITTING...' : 'RECORD TIME'}
+            </button>
+          </form>
+        ) : (
+          <div className="w-full max-w-md mb-12 flex flex-col items-center">
+            <div className="text-green-400 font-bold tracking-widest mb-6 px-6 py-3 bg-green-900/20 border border-green-500/50 rounded-lg">
+              TIME RECORDED
+            </div>
+            <button 
+              onClick={resetGame}
+              className="w-full px-8 py-4 bg-cyan-600 text-white font-bold text-xl tracking-widest rounded-lg hover:bg-cyan-500 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.6)] uppercase font-display"
+            >
+              PLAY AGAIN
+            </button>
+          </div>
+        )}
+
+        <Leaderboard />
+      </div>
+    </div>
+  );
+}

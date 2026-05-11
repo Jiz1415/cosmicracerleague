@@ -14,3 +14,30 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns the top race times sorted by fastest first
+ * @summary Get top leaderboard entries
+ */
+export const GetLeaderboardResponseItem = zod.object({
+  id: zod.number(),
+  playerName: zod.string(),
+  raceTimeMs: zod.number().describe("Race time in milliseconds"),
+  laps: zod.number(),
+  track: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem);
+
+/**
+ * Submit a completed race time to the leaderboard
+ * @summary Submit a race score
+ */
+export const submitScoreBodyPlayerNameMax = 20;
+
+export const SubmitScoreBody = zod.object({
+  playerName: zod.string().min(1).max(submitScoreBodyPlayerNameMax),
+  raceTimeMs: zod.number().min(1),
+  laps: zod.number().min(1),
+  track: zod.string().min(1),
+});

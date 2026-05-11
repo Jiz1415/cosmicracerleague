@@ -5,19 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
-
-export interface LeaderboardEntry {
-  id: number;
-  playerName: string;
-  /** Race time in milliseconds */
-  raceTimeMs: number;
-  laps: number;
-  track: string;
-  createdAt: string;
-}
 
 export interface ScoreInput {
   /**
