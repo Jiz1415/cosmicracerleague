@@ -1,131 +1,145 @@
-import React, { useRef, useState, useMemo } from 'react';
+import { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboardControls } from '@react-three/drei';
 import { useGameState } from './useGameState';
 
+const TRACK_Y = 1;
+const MAX_SPEED = 40;
+const ACCEL = 28;
+const BRAKE_FORCE = 22;
+const DRAG = 9;
+const REVERSE_MAX = 14;
+const TURN_SPEED = 2.0;
+const BOOST_MULT = 1.6;
+const BOOST_DURATION = 1.5;
+
+const BOOST_PAD_POSITIONS: THREE.Vector3[] = [
+  new THREE.Vector3(100, 0, 100),
+  new THREE.Vector3(-100, 0, -100),
+  new THREE.Vector3(0, 0, -100),
+];
+const BOOST_RADIUS = 9;
+
 export function Car() {
   const groupRef = useRef<THREE.Group>(null);
-  const [subscribe, get] = useKeyboardControls();
-  const { speed, setSpeed, lap, setLap, maxLaps, finishGame, boostActive, setBoostActive } = useGameState();
-  
+  const [, get] = useKeyboardControls();
+
   const velocity = useRef(0);
-  const maxSpeed = 40;
-  const acceleration = 20;
-  const deceleration = 15;
-  const turnSpeed = 2;
-  const boostMultiplier = 1.6;
-  const boostDuration = 1.5;
+  const carYaw = useRef(Math.PI / 2);
+  const carPos = useRef(new THREE.Vector3(0, TRACK_Y, 100));
   const boostEndTime = useRef(0);
-
-  const curve = useMemo(() => {
-    const pts = [
-      new THREE.Vector3(0, 0, 100),
-      new THREE.Vector3(100, 0, 100),
-      new THREE.Vector3(150, 0, 50),
-      new THREE.Vector3(150, 0, -50),
-      new THREE.Vector3(100, 0, -100),
-      new THREE.Vector3(-100, 0, -100),
-      new THREE.Vector3(-150, 0, -50),
-      new THREE.Vector3(-150, 0, 50),
-      new THREE.Vector3(-100, 0, 100),
-      new THREE.Vector3(0, 0, 100),
-    ];
-    return new THREE.CatmullRomCurve3(pts, true);
-  }, []);
-
-  const progress = useRef(0);
-  const lastProgress = useRef(0);
+  const lapCooldown = useRef(false);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
     const { forward, back, left, right } = get();
+    const {
+      setSpeed,
+      lap,
+      setLap,
+      maxLaps,
+      finishGame,
+      boostActive,
+      setBoostActive,
+    } = useGameState.getState();
 
-    // Handle speed
-    const currentMaxSpeed = boostActive ? maxSpeed * boostMultiplier : maxSpeed;
-    
+    const clampedDelta = Math.min(delta, 0.05);
+
+    const effectiveMax = boostActive ? MAX_SPEED * BOOST_MULT : MAX_SPEED;
+
     if (forward) {
-      velocity.current = THREE.MathUtils.lerp(velocity.current, currentMaxSpeed, acceleration * delta * 0.1);
+      velocity.current = Math.min(velocity.current + ACCEL * clampedDelta, effectiveMax);
     } else if (back) {
-      velocity.current = THREE.MathUtils.lerp(velocity.current, -currentMaxSpeed * 0.5, deceleration * delta * 0.1);
+      if (velocity.current > 0) {
+        velocity.current = Math.max(0, velocity.current - BRAKE_FORCE * clampedDelta);
+      } else {
+        velocity.current = Math.max(-REVERSE_MAX, velocity.current - ACCEL * 0.5 * clampedDelta);
+      }
     } else {
-      velocity.current = THREE.MathUtils.lerp(velocity.current, 0, deceleration * delta * 0.1);
+      if (velocity.current > 0) {
+        velocity.current = Math.max(0, velocity.current - DRAG * clampedDelta);
+      } else if (velocity.current < 0) {
+        velocity.current = Math.min(0, velocity.current + DRAG * clampedDelta);
+      }
     }
 
-    // Boost timer
     if (boostActive && state.clock.getElapsedTime() > boostEndTime.current) {
       setBoostActive(false);
     }
 
     setSpeed(Math.abs(velocity.current));
 
-    // Calculate position on curve
-    progress.current += (velocity.current * delta) / curve.getLength();
-    
-    // Lap detection
-    if (progress.current >= 1) {
-      progress.current -= 1;
-      const newLap = lap + 1;
-      if (newLap > maxLaps) {
+    const speedRatio = Math.abs(velocity.current) / MAX_SPEED;
+    const steerDir = velocity.current >= 0 ? 1 : -1;
+    if (left)  carYaw.current += TURN_SPEED * speedRatio * clampedDelta * steerDir;
+    if (right) carYaw.current -= TURN_SPEED * speedRatio * clampedDelta * steerDir;
+
+    carPos.current.x += Math.sin(carYaw.current) * velocity.current * clampedDelta;
+    carPos.current.z += Math.cos(carYaw.current) * velocity.current * clampedDelta;
+    carPos.current.y = TRACK_Y;
+
+    groupRef.current.position.copy(carPos.current);
+    groupRef.current.rotation.set(0, carYaw.current, 0);
+
+    for (const pad of BOOST_PAD_POSITIONS) {
+      const dist = carPos.current.distanceTo(new THREE.Vector3(pad.x, TRACK_Y, pad.z));
+      if (dist < BOOST_RADIUS && !boostActive) {
+        setBoostActive(true);
+        boostEndTime.current = state.clock.getElapsedTime() + BOOST_DURATION;
+        break;
+      }
+    }
+
+    const nearFinish =
+      carPos.current.distanceTo(new THREE.Vector3(0, TRACK_Y, 100)) < 14 &&
+      velocity.current > 2;
+
+    if (nearFinish && !lapCooldown.current) {
+      lapCooldown.current = true;
+      const nextLap = lap + 1;
+      if (nextLap > maxLaps) {
         finishGame();
       } else {
-        setLap(newLap);
+        setLap(nextLap);
       }
-    } else if (progress.current < 0) {
-      progress.current += 1;
+      setTimeout(() => { lapCooldown.current = false; }, 4000);
     }
-    
-    lastProgress.current = progress.current;
 
-    // Movement and turning (simplified: stays on track center, but you can turn model)
-    const position = curve.getPointAt(progress.current);
-    const tangent = curve.getTangentAt(progress.current);
-    
-    let lateralOffset = 0;
-    if (left) lateralOffset = 5;
-    if (right) lateralOffset = -5;
-    
-    // Calculate normal for lateral movement
-    const up = new THREE.Vector3(0, 1, 0);
-    const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
-    
-    position.add(normal.multiplyScalar(lateralOffset));
-    
-    groupRef.current.position.copy(position);
-    
-    const targetRotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
-    groupRef.current.quaternion.slerp(targetRotation, 0.1);
+    const behind = new THREE.Vector3(
+      -Math.sin(carYaw.current) * 14,
+      6,
+      -Math.cos(carYaw.current) * 14
+    );
+    const idealCamPos = carPos.current.clone().add(behind);
+    const lookAhead = carPos.current.clone().add(
+      new THREE.Vector3(Math.sin(carYaw.current) * 10, 0, Math.cos(carYaw.current) * 10)
+    );
 
-    // Camera follow
-    const idealCameraOffset = new THREE.Vector3(0, 5, -15);
-    idealCameraOffset.applyQuaternion(groupRef.current.quaternion);
-    idealCameraOffset.add(groupRef.current.position);
-
-    const idealLookAt = new THREE.Vector3(0, 0, 20);
-    idealLookAt.applyQuaternion(groupRef.current.quaternion);
-    idealLookAt.add(groupRef.current.position);
-
-    state.camera.position.lerp(idealCameraOffset, 0.1);
-    state.camera.lookAt(idealLookAt);
+    state.camera.position.lerp(idealCamPos, 0.08);
+    state.camera.lookAt(lookAhead);
   });
+
+  const boost = useGameState(s => s.boostActive);
 
   return (
     <group ref={groupRef}>
-      {/* Car Body */}
-      <mesh position={[0, 0, 0]}>
+      <mesh>
         <boxGeometry args={[3, 1, 6]} />
         <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
       </mesh>
-      {/* Neon Accents */}
       <mesh position={[0, -0.4, 0]}>
         <boxGeometry args={[3.2, 0.2, 6.2]} />
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={2} />
       </mesh>
-      {/* Engine glow */}
       <mesh position={[0, 0, -3.1]}>
         <boxGeometry args={[2, 0.8, 0.5]} />
-        <meshStandardMaterial color="#ff00ff" emissive="#ff00ff" emissiveIntensity={boostActive ? 5 : 2} />
+        <meshStandardMaterial
+          color="#ff00ff"
+          emissive="#ff00ff"
+          emissiveIntensity={boost ? 5 : 2}
+        />
       </mesh>
     </group>
   );
