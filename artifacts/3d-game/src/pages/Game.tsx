@@ -6,10 +6,11 @@ import { Track } from '../game/Track';
 import { Car } from '../game/Car';
 import { HUD } from '../game/HUD';
 import { SpeedBoost } from '../game/SpeedBoost';
+import { Chest } from '../game/Chest';
 import { TRACKS } from '../game/tracks';
 
 export default function Game() {
-  const { startTime, setTimeMs, state, selectedTrackId } = useGameState();
+  const { startTime, setTimeMs, state, selectedTrackId, activeChests } = useGameState();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   useEffect(() => {
@@ -59,6 +60,17 @@ export default function Game() {
           {track.boostPads.map((pad, i) => (
             <SpeedBoost key={i} position={[pad[0], pad[1], pad[2]]} rotation={[0, Math.PI / 4 + (i * Math.PI / 8), 0]} color={track.secondaryColor} />
           ))}
+          {track.rareBoostPads?.map((pad, i) => (
+            <SpeedBoost key={"rare"+i} position={[pad[0], pad[1], pad[2]]} rotation={[0, Math.PI/3 + i*0.5, 0]} color="#ffd700" tier="rare" />
+          ))}
+          {track.legendaryBoostPad && (
+            <SpeedBoost position={track.legendaryBoostPad} rotation={[0, 0, 0]} color="#ffffff" tier="legendary" />
+          )}
+          {(track.chestSpots || []).map((spot, i) => {
+            const id = "chest-"+i;
+            if (!activeChests.includes(id)) return null;
+            return <Chest key={id} id={id} position={[spot[0], spot[1], spot[2]]} />;
+          })}
         </Canvas>
       </KeyboardControls>
       

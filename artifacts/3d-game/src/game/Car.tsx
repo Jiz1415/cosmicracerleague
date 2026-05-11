@@ -9,9 +9,13 @@ import { getCarById } from './cars';
 
 const TRACK_Y = 1;
 const REVERSE_MAX = 14;
-const BOOST_MULT = 1.6;
-const BOOST_DURATION = 1.5;
 const BOOST_RADIUS = 9;
+
+const BOOST_CONFIGS = {
+  common: { mult: 1.6, duration: 1.5 },
+  rare:   { mult: 2.0, duration: 2.5 },
+  legendary: { mult: 2.5, duration: 3.0 },
+};
 
 export function Car() {
   const groupRef = useRef<THREE.Group>(null);
@@ -49,10 +53,14 @@ export function Car() {
       boostActive,
       setBoostActive,
       setLapFlash,
+      activeBoostTier,
+      setActiveBoostTier,
+      activeChests,
+      collectChest
     } = useGameState.getState();
 
     const dt = Math.min(delta, 0.05);
-    const effectiveMax = boostActive ? carDef.maxSpeed * BOOST_MULT : carDef.maxSpeed;
+    const effectiveMax = boostActive && activeBoostTier ? carDef.maxSpeed * BOOST_CONFIGS[activeBoostTier].mult : carDef.maxSpeed;
     const DRAG = carDef.brakeForce * 0.4;
 
     // Acceleration / braking
@@ -110,11 +118,42 @@ export function Car() {
     groupRef.current.rotation.set(0, carYaw.current, 0);
 
     // Boost pad pickup
-    for (const pad of trackDef.boostPads) {
-      const dist = carPos.current.distanceTo(new THREE.Vector3(pad[0], TRACK_Y, pad[2]));
-      if (dist < BOOST_RADIUS && !boostActive) {
+    if (!boostActive) {
+      let hitTier: 'common' | 'rare' | 'legendary' | null = null;
+      for (const pad of trackDef.boostPads) {
+        if (carPos.current.distanceTo(new THREE.Vector3(pad[0], TRACK_Y, pad[2])) < BOOST_RADIUS) {
+          hitTier = 'common'; break;
+        }
+      }
+      if (!hitTier && trackDef.rareBoostPads) {
+        for (const pad of trackDef.rareBoostPads) {
+          if (carPos.current.distanceTo(new THREE.Vector3(pad[0], TRACK_Y, pad[2])) < BOOST_RADIUS) {
+            hitTier = 'rare'; break;
+          }
+        }
+      }
+      if (!hitTier && trackDef.legendaryBoostPad) {
+        if (carPos.current.distanceTo(new THREE.Vector3(trackDef.legendaryBoostPad[0], TRACK_Y, trackDef.legendaryBoostPad[2])) < BOOST_RADIUS) {
+          hitTier = 'legendary';
+        }
+      }
+
+      if (hitTier) {
+        setActiveBoostTier(hitTier);
         setBoostActive(true);
-        boostEndTime.current = state.clock.getElapsedTime() + BOOST_DURATION;
+        boostEndTime.current = state.clock.getElapsedTime() + BOOST_CONFIGS[hitTier].duration;
+      }
+    }
+
+    // Chest collision
+    const chestSpots = trackDef.chestSpots || [];
+    for (const chestId of activeChests) {
+      const idx = parseInt(chestId.split('-')[1]);
+      const spot = chestSpots[idx];
+      if (!spot) continue;
+      const dist = carPos.current.distanceTo(new THREE.Vector3(spot[0], TRACK_Y, spot[2]));
+      if (dist < 6) {
+        collectChest(chestId);
         break;
       }
     }

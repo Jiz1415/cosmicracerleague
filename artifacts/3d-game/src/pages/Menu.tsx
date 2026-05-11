@@ -22,7 +22,8 @@ export default function Menu() {
         <h1 className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 mb-2 font-display text-center" style={{ WebkitTextStroke: '1px rgba(0,255,255,0.5)', textShadow: '0 0 40px rgba(0,255,255,0.4)' }}>
           NEON CIRCUIT
         </h1>
-        <p className="text-cyan-400/80 tracking-[0.3em] font-bold mb-12">HYPER-VELOCITY RACING</p>
+        <p className="text-cyan-400/80 tracking-[0.3em] font-bold mb-1">HYPER-VELOCITY RACING</p>
+        <p className="text-white/35 text-sm tracking-widest italic mb-12">A JizXMiz Game</p>
 
         <div className="w-full flex flex-col sm:flex-row gap-4 mb-12 justify-center">
           {TRACKS.map(track => {
