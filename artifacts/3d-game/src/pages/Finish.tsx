@@ -3,13 +3,15 @@ import { useGameState } from '../game/useGameState';
 import { useSubmitScore, getGetLeaderboardQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Leaderboard } from '../game/Leaderboard';
+import { TRACKS } from '../game/tracks';
 
 export default function Finish() {
-  const { state, timeMs, resetGame } = useGameState();
+  const { state, timeMs, resetGame, selectedTrackId } = useGameState();
   const [playerName, setPlayerName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const queryClient = useQueryClient();
   const submitScore = useSubmitScore();
+  const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -28,8 +30,8 @@ export default function Finish() {
         data: { 
           playerName: playerName.trim().substring(0, 20), 
           raceTimeMs: timeMs, 
-          laps: 3, 
-          track: "Neon Circuit" 
+          laps: track.laps, 
+          track: track.name 
         } 
       },
       {
@@ -44,13 +46,14 @@ export default function Finish() {
   if (state !== 'FINISHED') return null;
 
   return (
-    <div className="w-screen h-screen bg-[#050510] flex flex-col items-center justify-center relative overflow-hidden font-sans">
-      <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ff00ff 0%, transparent 50%)' }} />
+    <div className="min-h-screen w-screen bg-[#050510] flex flex-col items-center justify-center relative overflow-y-auto font-sans py-16">
+      <div className="absolute inset-0 z-0 opacity-20 fixed pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at center, ${track.secondaryColor} 0%, transparent 50%)` }} />
       
       <div className="relative z-10 flex flex-col items-center max-w-2xl w-full px-6">
-        <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-violet-300 to-violet-600 mb-2 font-display text-center" style={{ textShadow: '0 0 40px rgba(255,0,255,0.4)' }}>
+        <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-violet-300 to-violet-600 mb-2 font-display text-center" style={{ textShadow: `0 0 40px ${track.secondaryColor}80` }}>
           RACE COMPLETE
         </h1>
+        <p className="text-violet-400 tracking-widest font-bold mb-8">TRACK: {track.name.toUpperCase()}</p>
         
         <div className="text-5xl text-white font-mono tracking-wider font-bold mb-12 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 px-8 py-4 rounded-xl border border-violet-500/30">
           {formatTime(timeMs)}

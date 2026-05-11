@@ -1,9 +1,10 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboardControls } from '@react-three/drei';
 import { useGameState } from './useGameState';
-import { makeTrackCurve, TRACK_HALF_WIDTH, closestPointOnCurve } from './trackCurve';
+import { getTrackCurve, TRACK_HALF_WIDTH, closestPointOnCurve } from './trackCurve';
+import { TRACKS } from './tracks';
 
 const TRACK_Y = 1;
 const MAX_SPEED = 40;
@@ -15,24 +16,27 @@ const TURN_SPEED = 2.0;
 const BOOST_MULT = 1.6;
 const BOOST_DURATION = 1.5;
 
-const BOOST_PAD_POSITIONS: THREE.Vector3[] = [
-  new THREE.Vector3(100, 0, 100),
-  new THREE.Vector3(-100, 0, -100),
-  new THREE.Vector3(0, 0, -100),
-];
 const BOOST_RADIUS = 9;
 
 export function Car() {
   const groupRef = useRef<THREE.Group>(null);
   const [, get] = useKeyboardControls();
 
-  const curve = useMemo(() => makeTrackCurve(), []);
+  const selectedTrackId = useGameState(s => s.selectedTrackId);
+  const curve = useMemo(() => getTrackCurve(selectedTrackId), [selectedTrackId]);
+  const trackDef = useMemo(() => TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0], [selectedTrackId]);
 
   const velocity = useRef(0);
-  const carYaw = useRef(Math.PI / 2);
-  const carPos = useRef(new THREE.Vector3(0, TRACK_Y, 100));
+  const carYaw = useRef(trackDef.startYaw);
+  const carPos = useRef(new THREE.Vector3(...trackDef.startPos));
   const boostEndTime = useRef(0);
   const lapCooldown = useRef(false);
+
+  useEffect(() => {
+    carPos.current = new THREE.Vector3(...trackDef.startPos);
+    carYaw.current = trackDef.startYaw;
+    velocity.current = 0;
+  }, [trackDef]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -46,6 +50,7 @@ export function Car() {
       finishGame,
       boostActive,
       setBoostActive,
+      setLapFlash,
     } = useGameState.getState();
 
     const dt = Math.min(delta, 0.05);
@@ -106,8 +111,8 @@ export function Car() {
     groupRef.current.rotation.set(0, carYaw.current, 0);
 
     // Boost pad pickup
-    for (const pad of BOOST_PAD_POSITIONS) {
-      const dist = carPos.current.distanceTo(new THREE.Vector3(pad.x, TRACK_Y, pad.z));
+    for (const pad of trackDef.boostPads) {
+      const dist = carPos.current.distanceTo(new THREE.Vector3(pad[0], TRACK_Y, pad[2]));
       if (dist < BOOST_RADIUS && !boostActive) {
         setBoostActive(true);
         boostEndTime.current = state.clock.getElapsedTime() + BOOST_DURATION;
@@ -115,9 +120,10 @@ export function Car() {
       }
     }
 
-    // Lap detection — finish line near (0, 1, 100)
+    // Lap detection
+    const finishPos = new THREE.Vector3(...trackDef.startPos);
     const nearFinish =
-      carPos.current.distanceTo(new THREE.Vector3(0, TRACK_Y, 100)) < 14 &&
+      carPos.current.distanceTo(finishPos) < 14 &&
       velocity.current > 2;
 
     if (nearFinish && !lapCooldown.current) {
@@ -127,6 +133,8 @@ export function Car() {
         finishGame();
       } else {
         setLap(nextLap);
+        setLapFlash(true);
+        setTimeout(() => setLapFlash(false), 2000);
       }
       setTimeout(() => { lapCooldown.current = false; }, 4000);
     }
@@ -154,17 +162,37 @@ export function Car() {
         <boxGeometry args={[3, 1, 6]} />
         <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
       </mesh>
+      
+      {/* Cockpit */}
+      <mesh position={[0, 0.7, 1]}>
+        <boxGeometry args={[2, 0.5, 2.5]} />
+        <meshStandardMaterial color="#000000" emissive="#000000" roughness={0.1} metalness={0.9} />
+      </mesh>
+
+      {/* Left Wing */}
+      <mesh position={[-1.8, 0.3, -2.5]} rotation={[0, -0.2, 0]}>
+        <boxGeometry args={[1, 0.2, 1.5]} />
+        <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
+      </mesh>
+
+      {/* Right Wing */}
+      <mesh position={[1.8, 0.3, -2.5]} rotation={[0, 0.2, 0]}>
+        <boxGeometry args={[1, 0.2, 1.5]} />
+        <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
+      </mesh>
+
       {/* Neon underside trim */}
       <mesh position={[0, -0.4, 0]}>
         <boxGeometry args={[3.2, 0.2, 6.2]} />
-        <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={2} />
+        <meshStandardMaterial color={trackDef.primaryColor} emissive={trackDef.primaryColor} emissiveIntensity={2} />
       </mesh>
+      
       {/* Engine thruster */}
       <mesh position={[0, 0, -3.1]}>
         <boxGeometry args={[2, 0.8, 0.5]} />
         <meshStandardMaterial
-          color="#ff00ff"
-          emissive="#ff00ff"
+          color={trackDef.secondaryColor}
+          emissive={trackDef.secondaryColor}
           emissiveIntensity={boost ? 5 : 2}
         />
       </mesh>

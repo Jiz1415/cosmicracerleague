@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TRACKS } from './tracks';
 
 export const TRACK_HALF_WIDTH = 12;
 export const TRACK_TUBE_RADIUS = 15;
@@ -16,8 +17,14 @@ export const TRACK_POINTS = [
   new THREE.Vector3(0, 0, 100),
 ];
 
+export function getTrackCurve(trackId: string): THREE.CatmullRomCurve3 {
+  const track = TRACKS.find(t => t.id === trackId) || TRACKS[0];
+  const pts = track.points.map(p => new THREE.Vector3(p[0], p[1], p[2]));
+  return new THREE.CatmullRomCurve3(pts, true);
+}
+
 export function makeTrackCurve(): THREE.CatmullRomCurve3 {
-  return new THREE.CatmullRomCurve3(TRACK_POINTS, true);
+  return getTrackCurve('neon-circuit');
 }
 
 const LOOKUP_SEGMENTS = 200;

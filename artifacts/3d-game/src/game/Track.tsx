@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { makeTrackCurve, TRACK_HALF_WIDTH } from './trackCurve';
+import { getTrackCurve, TRACK_HALF_WIDTH } from './trackCurve';
+import { TRACKS } from './tracks';
 
 const SEGMENTS = 150;
-const WALL_RADIUS = 1.2;
+const INNER_WALL_RADIUS = 0.8;
+const OUTER_WALL_RADIUS = 2;
 
-export function Track() {
-  const curve = useMemo(() => makeTrackCurve(), []);
+export function Track({ trackId }: { trackId: string }) {
+  const track = useMemo(() => TRACKS.find(t => t.id === trackId) || TRACKS[0], [trackId]);
+  const curve = useMemo(() => getTrackCurve(trackId), [trackId]);
 
   // Flat road ribbon — custom BufferGeometry sampled along the curve
   const roadGeometry = useMemo(() => {
@@ -74,6 +77,40 @@ export function Track() {
     return new THREE.CatmullRomCurve3(pts, true);
   }, [curve]);
 
+  // Left-edge inner strip curve
+  const leftStripCurve = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= SEGMENTS; i++) {
+      const t = i / SEGMENTS;
+      const pt = curve.getPointAt(t);
+      const tan = curve.getTangentAt(t).normalize();
+      const right = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      pts.push(new THREE.Vector3(
+        pt.x - right.x * (TRACK_HALF_WIDTH - 1.5),
+        0.06,
+        pt.z - right.z * (TRACK_HALF_WIDTH - 1.5),
+      ));
+    }
+    return new THREE.CatmullRomCurve3(pts, true);
+  }, [curve]);
+
+  // Right-edge inner strip curve
+  const rightStripCurve = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= SEGMENTS; i++) {
+      const t = i / SEGMENTS;
+      const pt = curve.getPointAt(t);
+      const tan = curve.getTangentAt(t).normalize();
+      const right = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      pts.push(new THREE.Vector3(
+        pt.x + right.x * (TRACK_HALF_WIDTH - 1.5),
+        0.06,
+        pt.z + right.z * (TRACK_HALF_WIDTH - 1.5),
+      ));
+    }
+    return new THREE.CatmullRomCurve3(pts, true);
+  }, [curve]);
+
   // Center-line dashes (pre-calculated positions)
   const dashData = useMemo(() =>
     Array.from({ length: 24 }, (_, i) => {
@@ -97,32 +134,74 @@ export function Track() {
         />
       </mesh>
 
-      {/* Left barrier wall */}
+      {/* Left barrier wall - solid */}
       <mesh>
-        <tubeGeometry args={[leftEdgeCurve, 200, WALL_RADIUS, 6, true]} />
+        <tubeGeometry args={[leftEdgeCurve, 200, INNER_WALL_RADIUS, 6, true]} />
         <meshStandardMaterial
-          color="#00cfcf"
-          emissive="#00ffff"
-          emissiveIntensity={2.5}
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          emissiveIntensity={3}
+        />
+      </mesh>
+      
+      {/* Left barrier wall - glow */}
+      <mesh>
+        <tubeGeometry args={[leftEdgeCurve, 200, OUTER_WALL_RADIUS, 6, true]} />
+        <meshStandardMaterial
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          transparent
+          opacity={0.12}
         />
       </mesh>
 
-      {/* Right barrier wall */}
+      {/* Right barrier wall - solid */}
       <mesh>
-        <tubeGeometry args={[rightEdgeCurve, 200, WALL_RADIUS, 6, true]} />
+        <tubeGeometry args={[rightEdgeCurve, 200, INNER_WALL_RADIUS, 6, true]} />
         <meshStandardMaterial
-          color="#00cfcf"
-          emissive="#00ffff"
-          emissiveIntensity={2.5}
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          emissiveIntensity={3}
+        />
+      </mesh>
+      
+      {/* Right barrier wall - glow */}
+      <mesh>
+        <tubeGeometry args={[rightEdgeCurve, 200, OUTER_WALL_RADIUS, 6, true]} />
+        <meshStandardMaterial
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          transparent
+          opacity={0.12}
+        />
+      </mesh>
+
+      {/* Left inner strip */}
+      <mesh>
+        <tubeGeometry args={[leftStripCurve, 200, 0.3, 3, true]} />
+        <meshStandardMaterial
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          emissiveIntensity={1.5}
+        />
+      </mesh>
+
+      {/* Right inner strip */}
+      <mesh>
+        <tubeGeometry args={[rightStripCurve, 200, 0.3, 3, true]} />
+        <meshStandardMaterial
+          color={track.primaryColor}
+          emissive={track.primaryColor}
+          emissiveIntensity={1.5}
         />
       </mesh>
 
       {/* Finish line */}
-      <mesh position={[0, 0.1, 100]} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
+      <mesh position={[track.startPos[0], 0.1, track.startPos[2]]} rotation={[Math.PI / 2, 0, track.startYaw]}>
         <planeGeometry args={[24, 3]} />
         <meshStandardMaterial
-          color="#ff00ff"
-          emissive="#ff00ff"
+          color={track.secondaryColor}
+          emissive={track.secondaryColor}
           emissiveIntensity={3}
           side={THREE.DoubleSide}
         />

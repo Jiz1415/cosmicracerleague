@@ -6,9 +6,11 @@ import { Track } from '../game/Track';
 import { Car } from '../game/Car';
 import { HUD } from '../game/HUD';
 import { SpeedBoost } from '../game/SpeedBoost';
+import { TRACKS } from '../game/tracks';
 
 export default function Game() {
-  const { startTime, setTimeMs, state, finishGame } = useGameState();
+  const { startTime, setTimeMs, state, selectedTrackId } = useGameState();
+  const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   useEffect(() => {
     let animationFrameId: number;
@@ -44,19 +46,19 @@ export default function Game() {
     <div className="w-screen h-screen bg-black overflow-hidden relative">
       <KeyboardControls map={keyboardMap}>
         <Canvas>
-          <color attach="background" args={['#050510']} />
-          <ambientLight intensity={0.2} />
-          <directionalLight position={[10, 20, 10]} intensity={1} color="#00ffff" />
-          <pointLight position={[-10, -10, -10]} intensity={0.5} color="#ff00ff" />
+          <color attach="background" args={[track.fogColor]} />
+          <ambientLight intensity={0.2} color={track.ambientColor} />
+          <directionalLight position={[10, 20, 10]} intensity={1} color={track.primaryColor} />
+          <pointLight position={[-10, -10, -10]} intensity={0.5} color={track.secondaryColor} />
           
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
-          <Track />
+          <Track trackId={selectedTrackId} />
           <Car />
           
-          <SpeedBoost position={[100, 0, 100]} rotation={[0, Math.PI / 4, 0]} />
-          <SpeedBoost position={[-100, 0, -100]} rotation={[0, -Math.PI / 4, 0]} />
-          <SpeedBoost position={[0, 0, -100]} rotation={[0, Math.PI / 2, 0]} />
+          {track.boostPads.map((pad, i) => (
+            <SpeedBoost key={i} position={[pad[0], pad[1], pad[2]]} rotation={[0, Math.PI / 4 + (i * Math.PI / 8), 0]} color={track.secondaryColor} />
+          ))}
         </Canvas>
       </KeyboardControls>
       

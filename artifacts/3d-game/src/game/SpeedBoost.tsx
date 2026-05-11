@@ -5,9 +5,10 @@ import { useFrame } from '@react-three/fiber';
 interface SpeedBoostProps {
   position: [number, number, number];
   rotation: [number, number, number];
+  color: string;
 }
 
-export function SpeedBoost({ position, rotation }: SpeedBoostProps) {
+export function SpeedBoost({ position, rotation, color }: SpeedBoostProps) {
   const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
   useFrame(({ clock }) => {
@@ -21,8 +22,8 @@ export function SpeedBoost({ position, rotation }: SpeedBoostProps) {
       <boxGeometry args={[10, 0.2, 4]} />
       <meshStandardMaterial 
         ref={materialRef}
-        color={new THREE.Color('#00ffff')} 
-        emissive={new THREE.Color('#00ffff')} 
+        color={new THREE.Color(color)} 
+        emissive={new THREE.Color(color)} 
         emissiveIntensity={2} 
         transparent 
         opacity={0.8} 

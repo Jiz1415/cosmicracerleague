@@ -1,8 +1,10 @@
 import React from 'react';
 import { useGameState } from './useGameState';
+import { TRACKS } from './tracks';
 
 export function HUD() {
-  const { lap, maxLaps, speed, timeMs, boostActive } = useGameState();
+  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash } = useGameState();
+  const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -31,12 +33,23 @@ export function HUD() {
         </div>
       </div>
 
-      <div className="flex justify-center mb-10">
+      <div className="flex flex-col items-center mb-10 gap-4">
+        {lapFlash && (
+          <div 
+            className="text-6xl font-black tracking-widest animate-pulse drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]"
+            style={{ color: track.primaryColor }}
+          >
+            LAP COMPLETE!
+          </div>
+        )}
         {boostActive && (
           <div className="text-2xl font-bold tracking-widest text-cyan-400 animate-pulse bg-black/60 px-8 py-2 rounded-full border border-cyan-400 shadow-[0_0_20px_rgba(0,255,255,0.8)]">
             BOOST ACTIVE
           </div>
         )}
+        <div className="text-white/50 text-sm font-bold tracking-widest bg-black/40 px-4 py-1 rounded">
+          {track.name.toUpperCase()}
+        </div>
       </div>
     </div>
   );
