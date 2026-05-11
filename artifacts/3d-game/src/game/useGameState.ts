@@ -19,16 +19,21 @@ interface GameState {
   ownedCars: string[];
   selectedCarId: string;
   creditsEarned: number;
+  carX: number;
+  carZ: number;
+  collectedCoins: string[];
   setState: (state: 'MENU' | 'RACING' | 'FINISHED' | 'GARAGE') => void;
   setSelectedTrackId: (id: string) => void;
   setLapFlash: (lapFlash: boolean) => void;
   setLap: (lap: number) => void;
   setSpeed: (speed: number) => void;
   setTimeMs: (time: number) => void;
+  setCarPos: (x: number, z: number) => void;
   setBoostActive: (active: boolean) => void;
   setActiveBoostTier: (tier: 'common' | 'rare' | 'legendary' | null) => void;
   setActiveChests: (ids: string[]) => void;
   collectChest: (id: string) => void;
+  collectCoin: (id: string) => void;
   setChestNotification: (msg: string | null) => void;
   startGame: () => void;
   finishGame: () => void;
@@ -72,19 +77,31 @@ export const useGameState = create<GameState>((set, get) => ({
   ownedCars: initOwnedCars,
   selectedCarId: initSelectedCarId,
   creditsEarned: 0,
+  carX: 0,
+  carZ: 0,
+  collectedCoins: [],
   setState: (state) => set({ state }),
   setSelectedTrackId: (id) => set({ selectedTrackId: id }),
   setLapFlash: (lapFlash) => set({ lapFlash }),
   setLap: (lap) => set((state) => {
     const isAlt = lap % 2 === 0;
-    return { lap, activeChests: isAlt ? ["chest-1", "chest-3"] : ["chest-0", "chest-2"] };
+    return { lap, activeChests: isAlt ? ["chest-1", "chest-3"] : ["chest-0", "chest-2"], collectedCoins: [] };
   }),
   setSpeed: (speed) => set({ speed }),
   setTimeMs: (timeMs) => set({ timeMs }),
+  setCarPos: (x, z) => set({ carX: x, carZ: z }),
   setBoostActive: (boostActive) => set({ boostActive }),
   setActiveBoostTier: (tier) => set({ activeBoostTier: tier }),
   setActiveChests: (ids) => set({ activeChests: ids }),
   setChestNotification: (msg) => set({ chestNotification: msg }),
+  collectCoin: (id) => set(state => {
+    if (state.collectedCoins.includes(id)) return state;
+    const idx = parseInt(id.split('-')[1]);
+    const reward = (idx % 2 === 0) ? 25 : 50;
+    const next = state.credits + reward;
+    try { localStorage.setItem('neon-credits', String(next)); } catch(e) {}
+    return { collectedCoins: [...state.collectedCoins, id], credits: next };
+  }),
   collectChest: (id) => set(state => {
     const nextChests = state.activeChests.filter(c => c !== id);
     const mod = Date.now() % 4;
@@ -105,10 +122,10 @@ export const useGameState = create<GameState>((set, get) => ({
   }),
   startGame: () => {
     const track = TRACKS.find(t => t.id === get().selectedTrackId) || TRACKS[0];
-    set({ state: 'RACING', lap: 1, maxLaps: track.laps, speed: 0, timeMs: 0, startTime: Date.now(), endTime: null, boostActive: false, activeBoostTier: null, lapFlash: false, activeChests: ["chest-0", "chest-2"] });
+    set({ state: 'RACING', lap: 1, maxLaps: track.laps, speed: 0, timeMs: 0, startTime: Date.now(), endTime: null, boostActive: false, activeBoostTier: null, lapFlash: false, activeChests: ["chest-0", "chest-2"], collectedCoins: [] });
   },
   finishGame: () => set((state) => ({ state: 'FINISHED', endTime: Date.now() })),
-  resetGame: () => set({ state: 'MENU', lap: 1, speed: 0, timeMs: 0, startTime: null, endTime: null, boostActive: false, lapFlash: false }),
+  resetGame: () => set({ state: 'MENU', lap: 1, speed: 0, timeMs: 0, startTime: null, endTime: null, boostActive: false, lapFlash: false, collectedCoins: [] }),
   setSelectedCarId: (id: string) => {
     try { localStorage.setItem('neon-selected-car', id); } catch (e) {}
     set({ selectedCarId: id });

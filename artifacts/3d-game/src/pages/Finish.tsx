@@ -115,7 +115,7 @@ export default function Finish() {
           </div>
         )}
 
-        <Leaderboard />
+        <Leaderboard trackId={selectedTrackId} trackColor={track.primaryColor} />
       </div>
     </div>
   );

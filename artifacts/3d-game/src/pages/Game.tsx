@@ -7,10 +7,11 @@ import { Car } from '../game/Car';
 import { HUD } from '../game/HUD';
 import { SpeedBoost } from '../game/SpeedBoost';
 import { Chest } from '../game/Chest';
+import { Coin } from '../game/Coin';
 import { TRACKS } from '../game/tracks';
 
 export default function Game() {
-  const { startTime, setTimeMs, state, selectedTrackId, activeChests } = useGameState();
+  const { startTime, setTimeMs, state, selectedTrackId, activeChests, collectedCoins } = useGameState();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   useEffect(() => {
@@ -70,6 +71,10 @@ export default function Game() {
             const id = "chest-"+i;
             if (!activeChests.includes(id)) return null;
             return <Chest key={id} id={id} position={[spot[0], spot[1], spot[2]]} />;
+          })}
+          {(track.coinSpots || []).map((spot, i) => {
+            if (collectedCoins.includes("coin-" + i)) return null;
+            return <Coin key={"coin-" + i} position={[spot[0], spot[1], spot[2]]} />;
           })}
         </Canvas>
       </KeyboardControls>

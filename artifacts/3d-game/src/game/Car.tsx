@@ -56,7 +56,9 @@ export function Car() {
       activeBoostTier,
       setActiveBoostTier,
       activeChests,
-      collectChest
+      collectChest,
+      collectedCoins,
+      collectCoin
     } = useGameState.getState();
 
     const dt = Math.min(delta, 0.05);
@@ -114,6 +116,8 @@ export function Car() {
     }
     carPos.current.y = TRACK_Y;
 
+    useGameState.getState().setCarPos(carPos.current.x, carPos.current.z);
+
     groupRef.current.position.copy(carPos.current);
     groupRef.current.rotation.set(0, carYaw.current, 0);
 
@@ -154,6 +158,19 @@ export function Car() {
       const dist = carPos.current.distanceTo(new THREE.Vector3(spot[0], TRACK_Y, spot[2]));
       if (dist < 6) {
         collectChest(chestId);
+        break;
+      }
+    }
+
+    // Coin collision
+    const coinSpotsList = trackDef.coinSpots || [];
+    for (let i = 0; i < coinSpotsList.length; i++) {
+      const coinId = "coin-" + i;
+      if (collectedCoins.includes(coinId)) continue;
+      const spot = coinSpotsList[i];
+      const dist = carPos.current.distanceTo(new THREE.Vector3(spot[0], TRACK_Y, spot[2]));
+      if (dist < 5) {
+        collectCoin(coinId);
         break;
       }
     }

@@ -1,9 +1,9 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { useGameState } from './useGameState';
 import { TRACKS } from './tracks';
 
 export function HUD() {
-  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification } = useGameState();
+  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification, carX, carZ } = useGameState();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   const formatTime = (ms: number) => {
@@ -13,6 +13,28 @@ export function HUD() {
     const milliseconds = Math.floor((ms % 1000) / 10);
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
   };
+
+  const { minimapProps, polylinePoints } = useMemo(() => {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const p of track.points) {
+      if (p[0] < minX) minX = p[0];
+      if (p[0] > maxX) maxX = p[0];
+      if (p[2] < minZ) minZ = p[2];
+      if (p[2] > maxZ) maxZ = p[2];
+    }
+    const pointsStr = track.points.map(p => {
+      const x = ((p[0] - minX) / (maxX - minX)) * 100 + 10;
+      const z = ((p[2] - minZ) / (maxZ - minZ)) * 100 + 10;
+      return `${x},${z}`;
+    }).join(' ');
+    return {
+      minimapProps: { minX, maxX, minZ, maxZ },
+      polylinePoints: pointsStr
+    };
+  }, [track.points]);
+
+  const svgCarX = ((carX - minimapProps.minX) / (minimapProps.maxX - minimapProps.minX)) * 100 + 10;
+  const svgCarZ = ((carZ - minimapProps.minZ) / (minimapProps.maxZ - minimapProps.minZ)) * 100 + 10;
 
   return (
     <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between font-['Orbitron']">
@@ -65,6 +87,14 @@ export function HUD() {
         <div className="text-white/50 text-sm font-bold tracking-widest bg-black/40 px-4 py-1 rounded">
           {track.name.toUpperCase()}
         </div>
+      </div>
+
+      <div style={{ position: 'absolute', bottom: '24px', left: '24px' }}>
+        <svg width="120" height="120" viewBox="0 0 120 120" className="bg-black/50 rounded-lg shadow-lg" style={{ border: `2px solid ${track.primaryColor}` }}>
+          <polyline points={polylinePoints} fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinejoin="round" />
+          <circle cx={svgCarX} cy={svgCarZ} r="4" fill="white" />
+          <circle cx={svgCarX} cy={svgCarZ} r="6" fill={track.primaryColor} opacity="0.5" />
+        </svg>
       </div>
     </div>
   );
