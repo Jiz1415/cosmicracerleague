@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { TRACKS } from './tracks';
 
 interface GameState {
-  state: 'MENU' | 'RACING' | 'FINISHED';
+  state: 'MENU' | 'RACING' | 'FINISHED' | 'GARAGE';
   selectedTrackId: string;
   lapFlash: boolean;
   lap: number;
@@ -12,7 +12,11 @@ interface GameState {
   boostActive: boolean;
   startTime: number | null;
   endTime: number | null;
-  setState: (state: 'MENU' | 'RACING' | 'FINISHED') => void;
+  credits: number;
+  ownedCars: string[];
+  selectedCarId: string;
+  creditsEarned: number;
+  setState: (state: 'MENU' | 'RACING' | 'FINISHED' | 'GARAGE') => void;
   setSelectedTrackId: (id: string) => void;
   setLapFlash: (lapFlash: boolean) => void;
   setLap: (lap: number) => void;
@@ -22,6 +26,25 @@ interface GameState {
   startGame: () => void;
   finishGame: () => void;
   resetGame: () => void;
+  setSelectedCarId: (id: string) => void;
+  addCredits: (amount: number) => void;
+  spendCredits: (amount: number) => boolean;
+  unlockCar: (carId: string) => void;
+  setCreditsEarned: (n: number) => void;
+}
+
+let initCredits = 0;
+let initOwnedCars = ['phantom-x1'];
+let initSelectedCarId = 'phantom-x1';
+
+try {
+  initCredits = Number(localStorage.getItem('neon-credits')) || 0;
+  const owned = localStorage.getItem('neon-owned');
+  if (owned) initOwnedCars = JSON.parse(owned);
+  const selected = localStorage.getItem('neon-selected-car');
+  if (selected) initSelectedCarId = selected;
+} catch (e) {
+  console.warn('localStorage error', e);
 }
 
 export const useGameState = create<GameState>((set, get) => ({
@@ -35,6 +58,10 @@ export const useGameState = create<GameState>((set, get) => ({
   boostActive: false,
   startTime: null,
   endTime: null,
+  credits: initCredits,
+  ownedCars: initOwnedCars,
+  selectedCarId: initSelectedCarId,
+  creditsEarned: 0,
   setState: (state) => set({ state }),
   setSelectedTrackId: (id) => set({ selectedTrackId: id }),
   setLapFlash: (lapFlash) => set({ lapFlash }),
@@ -48,4 +75,28 @@ export const useGameState = create<GameState>((set, get) => ({
   },
   finishGame: () => set((state) => ({ state: 'FINISHED', endTime: Date.now() })),
   resetGame: () => set({ state: 'MENU', lap: 1, speed: 0, timeMs: 0, startTime: null, endTime: null, boostActive: false, lapFlash: false }),
+  setSelectedCarId: (id: string) => {
+    try { localStorage.setItem('neon-selected-car', id); } catch (e) {}
+    set({ selectedCarId: id });
+  },
+  addCredits: (amount: number) => set(state => {
+    const next = state.credits + amount;
+    try { localStorage.setItem('neon-credits', String(next)); } catch (e) {}
+    return { credits: next };
+  }),
+  spendCredits: (amount: number) => {
+    const { credits } = get();
+    if (credits < amount) return false;
+    const next = credits - amount;
+    try { localStorage.setItem('neon-credits', String(next)); } catch (e) {}
+    set({ credits: next });
+    return true;
+  },
+  unlockCar: (carId: string) => set(state => {
+    if (state.ownedCars.includes(carId)) return state;
+    const next = [...state.ownedCars, carId];
+    try { localStorage.setItem('neon-owned', JSON.stringify(next)); } catch (e) {}
+    return { ownedCars: next };
+  }),
+  setCreditsEarned: (n: number) => set({ creditsEarned: n }),
 }));

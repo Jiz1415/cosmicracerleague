@@ -6,6 +6,7 @@ import { useGameState } from "./game/useGameState";
 import Menu from "./pages/Menu";
 import Game from "./pages/Game";
 import Finish from "./pages/Finish";
+import Garage from "./pages/Garage";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ function AppContent() {
       {state === 'MENU' && <Menu />}
       {state === 'RACING' && <Game />}
       {state === 'FINISHED' && <Finish />}
+      {state === 'GARAGE' && <Garage />}
     </>
   );
 }

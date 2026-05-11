@@ -5,17 +5,12 @@ import { useKeyboardControls } from '@react-three/drei';
 import { useGameState } from './useGameState';
 import { getTrackCurve, TRACK_HALF_WIDTH, closestPointOnCurve } from './trackCurve';
 import { TRACKS } from './tracks';
+import { getCarById } from './cars';
 
 const TRACK_Y = 1;
-const MAX_SPEED = 40;
-const ACCEL = 28;
-const BRAKE_FORCE = 22;
-const DRAG = 9;
 const REVERSE_MAX = 14;
-const TURN_SPEED = 2.0;
 const BOOST_MULT = 1.6;
 const BOOST_DURATION = 1.5;
-
 const BOOST_RADIUS = 9;
 
 export function Car() {
@@ -23,8 +18,11 @@ export function Car() {
   const [, get] = useKeyboardControls();
 
   const selectedTrackId = useGameState(s => s.selectedTrackId);
+  const selectedCarId = useGameState(s => s.selectedCarId);
+  
   const curve = useMemo(() => getTrackCurve(selectedTrackId), [selectedTrackId]);
   const trackDef = useMemo(() => TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0], [selectedTrackId]);
+  const carDef = useMemo(() => getCarById(selectedCarId), [selectedCarId]);
 
   const velocity = useRef(0);
   const carYaw = useRef(trackDef.startYaw);
@@ -54,16 +52,17 @@ export function Car() {
     } = useGameState.getState();
 
     const dt = Math.min(delta, 0.05);
-    const effectiveMax = boostActive ? MAX_SPEED * BOOST_MULT : MAX_SPEED;
+    const effectiveMax = boostActive ? carDef.maxSpeed * BOOST_MULT : carDef.maxSpeed;
+    const DRAG = carDef.brakeForce * 0.4;
 
     // Acceleration / braking
     if (forward) {
-      velocity.current = Math.min(velocity.current + ACCEL * dt, effectiveMax);
+      velocity.current = Math.min(velocity.current + carDef.acceleration * dt, effectiveMax);
     } else if (back) {
       if (velocity.current > 0) {
-        velocity.current = Math.max(0, velocity.current - BRAKE_FORCE * dt);
+        velocity.current = Math.max(0, velocity.current - carDef.brakeForce * dt);
       } else {
-        velocity.current = Math.max(-REVERSE_MAX, velocity.current - ACCEL * 0.5 * dt);
+        velocity.current = Math.max(-REVERSE_MAX, velocity.current - carDef.acceleration * 0.5 * dt);
       }
     } else {
       if (velocity.current > 0) {
@@ -81,10 +80,10 @@ export function Car() {
     setSpeed(Math.abs(velocity.current));
 
     // Steering — proportional to speed; yaw PERSISTS (no spring-back)
-    const speedRatio = Math.abs(velocity.current) / MAX_SPEED;
+    const speedRatio = Math.abs(velocity.current) / carDef.maxSpeed;
     const steerDir = velocity.current >= 0 ? 1 : -1;
-    if (left)  carYaw.current += TURN_SPEED * speedRatio * dt * steerDir;
-    if (right) carYaw.current -= TURN_SPEED * speedRatio * dt * steerDir;
+    if (left)  carYaw.current += carDef.turnSpeed * speedRatio * dt * steerDir;
+    if (right) carYaw.current -= carDef.turnSpeed * speedRatio * dt * steerDir;
 
     // Move in heading direction
     const newX = carPos.current.x + Math.sin(carYaw.current) * velocity.current * dt;
@@ -160,7 +159,7 @@ export function Car() {
       {/* Body */}
       <mesh>
         <boxGeometry args={[3, 1, 6]} />
-        <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
+        <meshStandardMaterial color={carDef.bodyColor} emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
       </mesh>
       
       {/* Cockpit */}
@@ -172,27 +171,27 @@ export function Car() {
       {/* Left Wing */}
       <mesh position={[-1.8, 0.3, -2.5]} rotation={[0, -0.2, 0]}>
         <boxGeometry args={[1, 0.2, 1.5]} />
-        <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
+        <meshStandardMaterial color={carDef.bodyColor} emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
       </mesh>
 
       {/* Right Wing */}
       <mesh position={[1.8, 0.3, -2.5]} rotation={[0, 0.2, 0]}>
         <boxGeometry args={[1, 0.2, 1.5]} />
-        <meshStandardMaterial color="#1a1a2e" emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
+        <meshStandardMaterial color={carDef.bodyColor} emissive="#0f0f1a" roughness={0.2} metalness={0.8} />
       </mesh>
 
       {/* Neon underside trim */}
       <mesh position={[0, -0.4, 0]}>
         <boxGeometry args={[3.2, 0.2, 6.2]} />
-        <meshStandardMaterial color={trackDef.primaryColor} emissive={trackDef.primaryColor} emissiveIntensity={2} />
+        <meshStandardMaterial color={carDef.trimColor} emissive={carDef.trimColor} emissiveIntensity={2} />
       </mesh>
       
       {/* Engine thruster */}
       <mesh position={[0, 0, -3.1]}>
         <boxGeometry args={[2, 0.8, 0.5]} />
         <meshStandardMaterial
-          color={trackDef.secondaryColor}
-          emissive={trackDef.secondaryColor}
+          color={carDef.thrusterColor}
+          emissive={carDef.thrusterColor}
           emissiveIntensity={boost ? 5 : 2}
         />
       </mesh>

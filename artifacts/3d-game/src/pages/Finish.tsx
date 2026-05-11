@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameState } from '../game/useGameState';
 import { useSubmitScore, getGetLeaderboardQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,12 +6,28 @@ import { Leaderboard } from '../game/Leaderboard';
 import { TRACKS } from '../game/tracks';
 
 export default function Finish() {
-  const { state, timeMs, resetGame, selectedTrackId } = useGameState();
+  const { state, timeMs, resetGame, selectedTrackId, maxLaps, addCredits, setCreditsEarned, creditsEarned } = useGameState();
   const [playerName, setPlayerName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const queryClient = useQueryClient();
   const submitScore = useSubmitScore();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
+  const awardProcessed = useRef(false);
+
+  useEffect(() => {
+    if (state === 'FINISHED' && !awardProcessed.current) {
+      awardProcessed.current = true;
+      let base = 200 * maxLaps;
+      const diffMult = track.difficulty === 'HARD' ? 1.7 : track.difficulty === 'MEDIUM' ? 1.35 : 1.0;
+      let earned = base * diffMult;
+      if (timeMs < 90000) earned += 500;
+      else if (timeMs < 120000) earned += 250;
+      
+      earned = Math.round(earned / 10) * 10;
+      addCredits(earned);
+      setCreditsEarned(earned);
+    }
+  }, [state, maxLaps, track.difficulty, timeMs, addCredits, setCreditsEarned]);
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -55,8 +71,12 @@ export default function Finish() {
         </h1>
         <p className="text-violet-400 tracking-widest font-bold mb-8">TRACK: {track.name.toUpperCase()}</p>
         
-        <div className="text-5xl text-white font-mono tracking-wider font-bold mb-12 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 px-8 py-4 rounded-xl border border-violet-500/30">
+        <div className="text-5xl text-white font-mono tracking-wider font-bold mb-4 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black/40 px-8 py-4 rounded-xl border border-violet-500/30">
           {formatTime(timeMs)}
+        </div>
+
+        <div className="text-2xl text-yellow-400 font-black tracking-widest mb-12 drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">
+          CREDITS EARNED: +{creditsEarned.toLocaleString()} CR
         </div>
 
         {!submitted ? (
