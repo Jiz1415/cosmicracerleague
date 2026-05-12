@@ -3,7 +3,7 @@ import { useGameState } from './useGameState';
 import { TRACKS } from './tracks';
 
 export function HUD() {
-  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification, carX, carZ } = useGameState();
+  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification, coinNotification, carX, carZ } = useGameState();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   const formatTime = (ms: number) => {
@@ -57,11 +57,21 @@ export function HUD() {
 
       <div className="flex flex-col items-center mb-10 gap-4">
         {lapFlash && (
-          <div 
-            className="text-6xl font-black tracking-widest animate-pulse drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]"
-            style={{ color: track.primaryColor }}
-          >
-            LAP COMPLETE!
+          <>
+            <div className="fixed inset-0 pointer-events-none z-50" style={{ background: track.primaryColor, animation: 'screen-flash 0.5s ease-out forwards' }} />
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-6xl font-black tracking-widest drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]" style={{ color: track.primaryColor }}>
+                LAP COMPLETE!
+              </div>
+              <div className="text-5xl" style={{ display: 'inline-block', animation: 'flag-wave 0.4s ease-in-out infinite' }}>
+                🏁
+              </div>
+            </div>
+          </>
+        )}
+        {coinNotification && (
+          <div className="text-lg font-bold tracking-widest text-yellow-300 animate-ping bg-black/60 px-4 py-1 rounded-full border border-yellow-400">
+            +CR
           </div>
         )}
         {boostActive && activeBoostTier === 'common' && (

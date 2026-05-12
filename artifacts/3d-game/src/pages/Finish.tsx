@@ -47,7 +47,7 @@ export default function Finish() {
           playerName: playerName.trim().substring(0, 20), 
           raceTimeMs: timeMs, 
           laps: track.laps, 
-          track: track.name 
+          track: track.id 
         } 
       },
       {

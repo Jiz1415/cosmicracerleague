@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboardControls } from '@react-three/drei';
 import { useGameState } from './useGameState';
-import { getTrackCurve, TRACK_HALF_WIDTH, closestPointOnCurve } from './trackCurve';
+import { getTrackCurve, TRACK_HALF_WIDTH, closestPointOnCurve, buildCurveLookup } from './trackCurve';
 import { TRACKS } from './tracks';
 import { getCarById } from './cars';
 
@@ -25,6 +25,7 @@ export function Car() {
   const selectedCarId = useGameState(s => s.selectedCarId);
   
   const curve = useMemo(() => getTrackCurve(selectedTrackId), [selectedTrackId]);
+  const curveLookup = useMemo(() => buildCurveLookup(selectedTrackId, curve), [selectedTrackId, curve]);
   const trackDef = useMemo(() => TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0], [selectedTrackId]);
   const carDef = useMemo(() => getCarById(selectedCarId), [selectedCarId]);
 
@@ -32,12 +33,18 @@ export function Car() {
   const carYaw = useRef(trackDef.startYaw);
   const carPos = useRef(new THREE.Vector3(...trackDef.startPos));
   const boostEndTime = useRef(0);
-  const lapCooldown = useRef(false);
+  const lapCooldown = useRef(true);
+  const hasLeftStart = useRef(false);
 
   useEffect(() => {
     carPos.current = new THREE.Vector3(...trackDef.startPos);
     carYaw.current = trackDef.startYaw;
     velocity.current = 0;
+    lapCooldown.current = true;
+    hasLeftStart.current = false;
+    // Grace period: prevent lap/finish trigger for first 5 seconds
+    const t = setTimeout(() => { lapCooldown.current = false; }, 5000);
+    return () => clearTimeout(t);
   }, [trackDef]);
 
   useFrame((state, delta) => {
@@ -101,7 +108,7 @@ export function Car() {
 
     // --- Track boundary constraint ---
     const probe = new THREE.Vector3(newX, 0, newZ);
-    const { point: closest, distance } = closestPointOnCurve(curve, probe);
+    const { point: closest, distance } = closestPointOnCurve(curve, probe, curveLookup);
 
     if (distance > TRACK_HALF_WIDTH) {
       // Push car back inside the track wall
@@ -177,9 +184,14 @@ export function Car() {
 
     // Lap detection
     const finishPos = new THREE.Vector3(...trackDef.startPos);
-    const nearFinish =
-      carPos.current.distanceTo(finishPos) < 14 &&
-      velocity.current > 2;
+    const distToStart = carPos.current.distanceTo(finishPos);
+
+    // Must leave the start zone before a lap can be counted
+    if (!hasLeftStart.current && distToStart > 35) {
+      hasLeftStart.current = true;
+    }
+
+    const nearFinish = distToStart < 14 && velocity.current > 2 && hasLeftStart.current;
 
     if (nearFinish && !lapCooldown.current) {
       lapCooldown.current = true;
@@ -251,6 +263,8 @@ export function Car() {
           emissiveIntensity={boost ? 5 : 2}
         />
       </mesh>
+
+      <pointLight position={[0, -1, -4]} color={carDef.thrusterColor} intensity={boost ? 10 : 3} distance={boost ? 25 : 10} />
     </group>
   );
 }

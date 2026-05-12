@@ -141,3 +141,14 @@
     font-family: 'Orbitron', sans-serif;
   }
 }
+
+@keyframes flag-wave {
+  0%,100% { transform: rotate(-8deg) scaleX(1); }
+  25% { transform: rotate(8deg) scaleX(0.95); }
+  50% { transform: rotate(-5deg) scaleX(1); }
+  75% { transform: rotate(6deg) scaleX(0.97); }
+}
+@keyframes screen-flash {
+  0% { opacity: 0.6; }
+  100% { opacity: 0; }
+}

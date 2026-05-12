@@ -13,6 +13,7 @@ interface GameState {
   activeBoostTier: 'common' | 'rare' | 'legendary' | null;
   activeChests: string[];
   chestNotification: string | null;
+  coinNotification: boolean;
   startTime: number | null;
   endTime: number | null;
   credits: number;
@@ -35,6 +36,7 @@ interface GameState {
   collectChest: (id: string) => void;
   collectCoin: (id: string) => void;
   setChestNotification: (msg: string | null) => void;
+  setCoinNotification: (v: boolean) => void;
   startGame: () => void;
   finishGame: () => void;
   resetGame: () => void;
@@ -71,6 +73,7 @@ export const useGameState = create<GameState>((set, get) => ({
   activeBoostTier: null,
   activeChests: [],
   chestNotification: null,
+  coinNotification: false,
   startTime: null,
   endTime: null,
   credits: initCredits,
@@ -94,13 +97,17 @@ export const useGameState = create<GameState>((set, get) => ({
   setActiveBoostTier: (tier) => set({ activeBoostTier: tier }),
   setActiveChests: (ids) => set({ activeChests: ids }),
   setChestNotification: (msg) => set({ chestNotification: msg }),
+  setCoinNotification: (v) => set({ coinNotification: v }),
   collectCoin: (id) => set(state => {
     if (state.collectedCoins.includes(id)) return state;
     const idx = parseInt(id.split('-')[1]);
     const reward = (idx % 2 === 0) ? 25 : 50;
     const next = state.credits + reward;
     try { localStorage.setItem('neon-credits', String(next)); } catch(e) {}
-    return { collectedCoins: [...state.collectedCoins, id], credits: next };
+    setTimeout(() => {
+      useGameState.getState().setCoinNotification(false);
+    }, 1200);
+    return { collectedCoins: [...state.collectedCoins, id], credits: next, coinNotification: true };
   }),
   collectChest: (id) => set(state => {
     const nextChests = state.activeChests.filter(c => c !== id);

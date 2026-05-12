@@ -31,6 +31,22 @@ const TRACK_THEME: Record<string, {
     btnBg: 'bg-purple-600/10', btnBorder: 'border-purple-400', btnText: 'text-purple-300',
     btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(170,0,255,0.6)]',
   },
+  'solar-storm': {
+    glow: 'radial-gradient(circle at center, #00ff88 0%, transparent 50%)',
+    titleFrom: 'from-green-300', titleTo: 'to-green-600',
+    stroke: 'rgba(0,255,136,0.5)', shadow: '0 0 40px rgba(0,255,136,0.4)',
+    subtitleColor: 'text-green-400/80',
+    btnBg: 'bg-green-500/10', btnBorder: 'border-green-400', btnText: 'text-green-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(0,255,136,0.6)]',
+  },
+  'void-serpent': {
+    glow: 'radial-gradient(circle at center, #4488ff 0%, transparent 50%)',
+    titleFrom: 'from-blue-300', titleTo: 'to-blue-600',
+    stroke: 'rgba(68,136,255,0.5)', shadow: '0 0 40px rgba(68,136,255,0.4)',
+    subtitleColor: 'text-blue-400/80',
+    btnBg: 'bg-blue-500/10', btnBorder: 'border-blue-400', btnText: 'text-blue-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(68,136,255,0.6)]',
+  },
 };
 
 export default function Menu() {
@@ -63,30 +79,57 @@ export default function Menu() {
         <p className={`${theme.subtitleColor} tracking-[0.3em] font-bold mb-1 transition-colors duration-500`}>HYPER-VELOCITY RACING</p>
         <p className="text-white/35 text-sm tracking-widest italic mb-12">A JizXMiz Game</p>
 
-        <div className="w-full flex flex-col sm:flex-row gap-4 mb-12 justify-center">
-          {TRACKS.map(t => {
-            const isSelected = t.id === selectedTrackId;
-            return (
-              <div
-                key={t.id}
-                onClick={() => setSelectedTrackId(t.id)}
-                className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center transition-all duration-300 w-full sm:w-1/3 bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
-                style={{
-                  borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.1)',
-                  boxShadow: isSelected ? `0 0 20px ${t.primaryColor}80` : 'none'
-                }}
-              >
-                <div className="font-display text-xl font-bold mb-2 text-center" style={{ color: t.primaryColor }}>
-                  {t.name}
+        <div className="w-full flex flex-col gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {TRACKS.slice(0, 3).map(t => {
+              const isSelected = t.id === selectedTrackId;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => setSelectedTrackId(t.id)}
+                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center transition-all duration-300 w-full sm:w-1/3 bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
+                  style={{
+                    borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.1)',
+                    boxShadow: isSelected ? `0 0 20px ${t.primaryColor}80` : 'none'
+                  }}
+                >
+                  <div className="font-display text-xl font-bold mb-2 text-center" style={{ color: t.primaryColor }}>
+                    {t.name}
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
+                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
+                  </div>
+                  <p className="text-sm text-center text-white/60">{t.flavor}</p>
                 </div>
-                <div className="flex gap-2 mb-4">
-                  <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
-                  <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
+              );
+            })}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {TRACKS.slice(3).map(t => {
+              const isSelected = t.id === selectedTrackId;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => setSelectedTrackId(t.id)}
+                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center transition-all duration-300 w-full sm:w-[30%] bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
+                  style={{
+                    borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.1)',
+                    boxShadow: isSelected ? `0 0 20px ${t.primaryColor}80` : 'none'
+                  }}
+                >
+                  <div className="font-display text-xl font-bold mb-2 text-center" style={{ color: t.primaryColor }}>
+                    {t.name}
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
+                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
+                  </div>
+                  <p className="text-sm text-center text-white/60">{t.flavor}</p>
                 </div>
-                <p className="text-sm text-center text-white/60">{t.flavor}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col items-center gap-4 mb-16">
