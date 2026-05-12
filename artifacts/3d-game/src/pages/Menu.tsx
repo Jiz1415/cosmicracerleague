@@ -1,4 +1,4 @@
-import { useGameState } from '../game/useGameState';
+import { useGameState, GameMode, getDailyChallenge } from '../game/useGameState';
 import { Leaderboard } from '../game/Leaderboard';
 import { TRACKS } from '../game/tracks';
 import { getCarById } from '../game/cars';
@@ -47,16 +47,97 @@ const TRACK_THEME: Record<string, {
     btnBg: 'bg-blue-500/10', btnBorder: 'border-blue-400', btnText: 'text-blue-300',
     btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(68,136,255,0.6)]',
   },
+  'glacier-rush': {
+    glow: 'radial-gradient(circle at center, #88ddff 0%, transparent 50%)',
+    titleFrom: 'from-sky-200', titleTo: 'to-sky-500',
+    stroke: 'rgba(136,221,255,0.5)', shadow: '0 0 40px rgba(136,221,255,0.4)',
+    subtitleColor: 'text-sky-400/80',
+    btnBg: 'bg-sky-500/10', btnBorder: 'border-sky-300', btnText: 'text-sky-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(136,221,255,0.6)]',
+  },
+  'cyber-tokyo': {
+    glow: 'radial-gradient(circle at center, #ff00cc 0%, transparent 50%)',
+    titleFrom: 'from-pink-300', titleTo: 'to-pink-700',
+    stroke: 'rgba(255,0,204,0.5)', shadow: '0 0 40px rgba(255,0,204,0.4)',
+    subtitleColor: 'text-pink-400/80',
+    btnBg: 'bg-pink-500/10', btnBorder: 'border-pink-400', btnText: 'text-pink-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(255,0,204,0.6)]',
+  },
+  'desert-mirage': {
+    glow: 'radial-gradient(circle at center, #ff8800 0%, transparent 50%)',
+    titleFrom: 'from-orange-300', titleTo: 'to-orange-600',
+    stroke: 'rgba(255,136,0,0.5)', shadow: '0 0 40px rgba(255,136,0,0.4)',
+    subtitleColor: 'text-orange-400/80',
+    btnBg: 'bg-orange-500/10', btnBorder: 'border-orange-400', btnText: 'text-orange-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(255,136,0,0.6)]',
+  },
+  'storm-peaks': {
+    glow: 'radial-gradient(circle at center, #ffff00 0%, transparent 50%)',
+    titleFrom: 'from-yellow-200', titleTo: 'to-yellow-500',
+    stroke: 'rgba(255,255,0,0.5)', shadow: '0 0 40px rgba(255,255,0,0.4)',
+    subtitleColor: 'text-yellow-400/80',
+    btnBg: 'bg-yellow-500/10', btnBorder: 'border-yellow-300', btnText: 'text-yellow-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(255,255,0,0.6)]',
+  },
+  'quantum-loop': {
+    glow: 'radial-gradient(circle at center, #00ffcc 0%, transparent 50%)',
+    titleFrom: 'from-teal-300', titleTo: 'to-teal-600',
+    stroke: 'rgba(0,255,204,0.5)', shadow: '0 0 40px rgba(0,255,204,0.4)',
+    subtitleColor: 'text-teal-400/80',
+    btnBg: 'bg-teal-500/10', btnBorder: 'border-teal-400', btnText: 'text-teal-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(0,255,204,0.6)]',
+  },
+  'midnight-harbor': {
+    glow: 'radial-gradient(circle at center, #0088ff 0%, transparent 50%)',
+    titleFrom: 'from-blue-300', titleTo: 'to-blue-700',
+    stroke: 'rgba(0,136,255,0.5)', shadow: '0 0 40px rgba(0,136,255,0.4)',
+    subtitleColor: 'text-blue-400/80',
+    btnBg: 'bg-blue-500/10', btnBorder: 'border-blue-400', btnText: 'text-blue-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(0,136,255,0.6)]',
+  },
+  'gravity-shift': {
+    glow: 'radial-gradient(circle at center, #ff44ff 0%, transparent 50%)',
+    titleFrom: 'from-fuchsia-300', titleTo: 'to-fuchsia-700',
+    stroke: 'rgba(255,68,255,0.5)', shadow: '0 0 40px rgba(255,68,255,0.4)',
+    subtitleColor: 'text-fuchsia-400/80',
+    btnBg: 'bg-fuchsia-500/10', btnBorder: 'border-fuchsia-400', btnText: 'text-fuchsia-300',
+    btnHoverShadow: 'hover:shadow-[0_0_30px_rgba(255,68,255,0.6)]',
+  },
 };
 
+const modes: { id: GameMode; label: string; desc: string }[] = [
+  { id: 'RACE', label: 'RACE', desc: 'Standard laps' },
+  { id: 'SPRINT', label: 'SPRINT', desc: '1 lap · 2× coins' },
+  { id: 'ENDURANCE', label: 'ENDURANCE', desc: 'Extra laps · CR/lap' },
+];
+
+const LEVEL_THRESHOLDS = [0,100,250,500,1000,2000,3500,5500,8000,12000,17000,25000,35000,50000];
+
 export default function Menu() {
-  const { startGame, state, selectedTrackId, setSelectedTrackId, credits, selectedCarId, setState } = useGameState();
+  const { startGame, state, selectedTrackId, setSelectedTrackId, credits, selectedCarId, setState, gameMode, setGameMode, xp, level, streakDays, dailyChallengeCompletedDate, personalBests } = useGameState();
 
   if (state !== 'MENU') return null;
 
   const selectedCar = getCarById(selectedCarId);
   const theme = TRACK_THEME[selectedTrackId] ?? TRACK_THEME['neon-circuit'];
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
+
+  const currentLevelXp = LEVEL_THRESHOLDS[Math.min(level, LEVEL_THRESHOLDS.length-1)];
+  const nextLevelXp = LEVEL_THRESHOLDS[Math.min(level+1, LEVEL_THRESHOLDS.length-1)];
+  const xpProgress = nextLevelXp > currentLevelXp ? (xp - currentLevelXp)/(nextLevelXp - currentLevelXp) : 1;
+
+  const daily = getDailyChallenge();
+  const dailyTrack = TRACKS.find(t => t.id === daily.trackId);
+  const todayStr = new Date().toDateString();
+  const dailyDone = dailyChallengeCompletedDate === todayStr;
+
+  const formatTime = (ms: number) => {
+    const s = Math.floor(ms/1000); 
+    const m = Math.floor(s/60);
+    const ss = s%60;
+    const ms2 = Math.floor((ms%1000)/10);
+    return `${m.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}.${ms2.toString().padStart(2,'0')}`;
+  };
 
   return (
     <div className="min-w-[100vw] min-h-[100vh] overflow-y-auto bg-[#050510] flex flex-col items-center py-16 relative font-sans transition-all duration-700">
@@ -77,62 +158,79 @@ export default function Menu() {
           {track.name.toUpperCase()}
         </h1>
         <p className={`${theme.subtitleColor} tracking-[0.3em] font-bold mb-1 transition-colors duration-500`}>HYPER-VELOCITY RACING</p>
-        <p className="text-white/35 text-sm tracking-widest italic mb-12">A JizXMiz Game</p>
+        <p className="text-white/35 text-sm tracking-widest italic mb-8">A JizXMiz Game</p>
 
-        <div className="w-full flex flex-col gap-4 mb-12">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {TRACKS.slice(0, 3).map(t => {
-              const isSelected = t.id === selectedTrackId;
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTrackId(t.id)}
-                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center transition-all duration-300 w-full sm:w-1/3 bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
-                  style={{
-                    borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.1)',
-                    boxShadow: isSelected ? `0 0 20px ${t.primaryColor}80` : 'none'
-                  }}
-                >
-                  <div className="font-display text-xl font-bold mb-2 text-center" style={{ color: t.primaryColor }}>
-                    {t.name}
-                  </div>
-                  <div className="flex gap-2 mb-4">
-                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
-                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
-                  </div>
-                  <p className="text-sm text-center text-white/60">{t.flavor}</p>
-                </div>
-              );
-            })}
+        {dailyTrack && (
+          <div 
+            onClick={() => {
+              setSelectedTrackId(daily.trackId);
+              setGameMode(daily.mode);
+            }}
+            className="mb-8 border border-yellow-500/50 bg-yellow-900/20 text-yellow-300 tracking-widest rounded-xl px-6 py-3 text-center cursor-pointer shadow-[0_0_15px_rgba(255,215,0,0.2)] hover:bg-yellow-900/40 transition-colors"
+          >
+            ⭐ DAILY CHALLENGE: {dailyTrack.name} · {daily.mode} {dailyDone && <span className="ml-2 bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-xs">✓ COMPLETED</span>}
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {TRACKS.slice(3).map(t => {
+        )}
+
+        <div className="flex gap-4 mb-6 w-full justify-center">
+          {modes.map(m => {
+            const isSelected = gameMode === m.id;
+            return (
+              <div
+                key={m.id}
+                onClick={() => setGameMode(m.id)}
+                className="cursor-pointer border-2 bg-black/40 rounded-xl px-6 py-3 flex flex-col items-center transition-all duration-300"
+                style={{
+                  borderColor: isSelected ? track.primaryColor : 'rgba(255,255,255,0.1)',
+                  boxShadow: isSelected ? `0 0 15px ${track.primaryColor}66` : 'none',
+                }}
+              >
+                <div className="tracking-widest font-bold text-sm" style={{ color: isSelected ? track.primaryColor : 'rgba(255,255,255,0.7)' }}>{m.label}</div>
+                <div className="text-[10px] text-white/50">{m.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="w-full mb-8">
+          <div className="grid grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1 pb-1 custom-scrollbar">
+            {TRACKS.map(t => {
               const isSelected = t.id === selectedTrackId;
+              const pbKey = `${t.id}-${gameMode.toLowerCase()}`;
+              const pb = personalBests[pbKey];
+              const isDaily = daily.trackId === t.id;
+
               return (
                 <div
                   key={t.id}
                   onClick={() => setSelectedTrackId(t.id)}
-                  className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center transition-all duration-300 w-full sm:w-[30%] bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
+                  className={`relative cursor-pointer border-2 rounded-xl p-3 flex flex-col items-center transition-all duration-300 bg-black/40 backdrop-blur-sm ${isSelected ? 'scale-105 z-10' : 'hover:bg-white/5'}`}
                   style={{
                     borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.1)',
                     boxShadow: isSelected ? `0 0 20px ${t.primaryColor}80` : 'none'
                   }}
                 >
-                  <div className="font-display text-xl font-bold mb-2 text-center" style={{ color: t.primaryColor }}>
+                  {isDaily && <div className="absolute top-2 right-2 text-xs">⭐</div>}
+                  <div className="font-display text-sm font-bold mb-1 text-center" style={{ color: t.primaryColor }}>
                     {t.name}
                   </div>
-                  <div className="flex gap-2 mb-4">
-                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
-                    <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
+                  <div className="flex gap-1 mb-2">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-bold">{t.difficulty}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-bold">{t.laps} LAPS</span>
                   </div>
-                  <p className="text-sm text-center text-white/60">{t.flavor}</p>
+                  <p className="text-xs text-center text-white/50 truncate w-full mb-1">{t.flavor}</p>
+                  {pb ? (
+                    <div className="text-[10px] font-mono font-bold text-green-400 mt-auto">PB {formatTime(pb)}</div>
+                  ) : (
+                    <div className="text-[10px] text-transparent mt-auto">-</div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 mb-16">
+        <div className="flex flex-col items-center gap-4 mb-8">
           <div className="flex gap-6">
             <button
               onClick={startGame}
@@ -153,6 +251,15 @@ export default function Menu() {
           <div className="text-sm tracking-widest font-bold uppercase mt-2 transition-colors duration-500" style={{ color: track.primaryColor + 'cc' }}>
             VEHICLE: {selectedCar.name}
           </div>
+        </div>
+
+        <div className="flex items-center gap-4 mb-8 w-full max-w-2xl bg-black/40 p-4 rounded-xl border border-white/10">
+          <div className="text-sm font-bold tracking-widest" style={{ color: track.primaryColor }}>LVL {level}</div>
+          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(xpProgress*100)}%`, background: track.primaryColor }} />
+          </div>
+          <div className="text-xs text-white/40 font-mono">{xp} XP</div>
+          {streakDays > 1 && <div className="text-xs font-bold text-orange-400">🔥 {streakDays}d</div>}
         </div>
 
         <Leaderboard trackId={selectedTrackId} trackColor={track.primaryColor} />

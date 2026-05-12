@@ -3,7 +3,7 @@ import { useGameState } from './useGameState';
 import { TRACKS } from './tracks';
 
 export function HUD() {
-  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification, coinNotification, carX, carZ } = useGameState();
+  const { lap, maxLaps, speed, timeMs, boostActive, selectedTrackId, lapFlash, activeBoostTier, chestNotification, coinNotification, carX, carZ, gameMode } = useGameState();
   const track = TRACKS.find(t => t.id === selectedTrackId) || TRACKS[0];
 
   const formatTime = (ms: number) => {
@@ -42,6 +42,11 @@ export function HUD() {
         <div className="bg-black/50 border border-cyan-500/30 p-4 backdrop-blur-sm rounded-lg shadow-[0_0_15px_rgba(0,255,255,0.2)]">
           <div className="text-cyan-500 text-sm tracking-widest font-bold">LAP</div>
           <div className="text-4xl text-white font-black">{lap} <span className="text-cyan-700 text-2xl">/ {maxLaps}</span></div>
+          {gameMode !== 'RACE' && (
+            <div className="text-[10px] font-bold tracking-widest mt-1" style={{ color: track.primaryColor }}>
+              {gameMode}
+            </div>
+          )}
         </div>
 
         <div className="bg-black/50 border border-cyan-500/30 p-4 backdrop-blur-sm rounded-lg shadow-[0_0_15px_rgba(0,255,255,0.2)] text-center min-w-[200px]">
