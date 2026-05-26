@@ -93,6 +93,46 @@ const gravityPoints: [number, number, number][] = [
   [-90,0,0],[-150,0,80],[-110,0,160],[0,0,200],
 ];
 
+const phantomPoints: [number, number, number][] = [
+  [0,0,120],[80,0,140],[140,0,100],[160,0,40],[120,0,-20],[80,0,-80],
+  [40,0,-120],[0,0,-140],[-40,0,-120],[-80,0,-80],[-120,0,-20],[-160,0,40],
+  [-140,0,100],[-80,0,140],[0,0,120],
+];
+const oasisPoints: [number, number, number][] = [
+  [0,0,180],[80,0,170],[150,0,130],[190,0,70],[200,0,0],[190,0,-70],
+  [150,0,-130],[80,0,-170],[0,0,-180],[-80,0,-170],[-150,0,-130],[-190,0,-70],
+  [-200,0,0],[-190,0,70],[-150,0,130],[-80,0,170],[0,0,180],
+];
+const eclipsePoints: [number, number, number][] = [
+  [0,0,220],[120,0,180],[180,0,100],[200,0,0],[180,0,-100],[120,0,-180],
+  [0,0,-220],[-120,0,-180],[-180,0,-100],[-200,0,0],[-180,0,100],[-120,0,180],[0,0,220],
+];
+const tundraPoints: [number, number, number][] = [
+  [0,0,140],[60,0,160],[130,0,120],[170,0,60],[160,0,0],[170,0,-60],[130,0,-120],
+  [60,0,-160],[0,0,-140],[-60,0,-120],[-120,0,-60],[-140,0,0],[-120,0,60],[-60,0,120],[0,0,140],
+];
+const nebulaPoints: [number, number, number][] = [
+  [0,0,170],[50,0,190],[120,0,180],[170,0,140],[190,0,80],[160,0,20],[120,0,-20],
+  [80,0,-70],[40,0,-120],[0,0,-140],[-40,0,-120],[-80,0,-70],[-120,0,-20],[-160,0,20],
+  [-190,0,80],[-170,0,140],[-120,0,180],[-50,0,190],[0,0,170],
+];
+const canyonPoints: [number, number, number][] = [
+  [0,0,180],[90,0,160],[160,0,120],[200,0,60],[170,0,0],[200,0,-60],[160,0,-120],
+  [90,0,-160],[0,0,-180],[-90,0,-160],[-160,0,-120],[-200,0,-60],[-170,0,0],[-200,0,60],
+  [-160,0,120],[-90,0,160],[0,0,180],
+];
+const auroraPoints: [number, number, number][] = [
+  [0,0,130],[70,0,150],[120,0,120],[160,0,80],[200,0,20],[180,0,-60],[150,0,-110],
+  [100,0,-150],[40,0,-170],[0,0,-160],[-40,0,-170],[-100,0,-150],[-150,0,-110],[-180,0,-60],
+  [-200,0,20],[-160,0,80],[-120,0,120],[-70,0,150],[0,0,130],
+];
+const infernoPoints: [number, number, number][] = [
+  [0,0,140],[80,0,170],[150,0,160],[180,0,120],[170,0,60],[140,0,10],[120,0,-40],
+  [160,0,-90],[180,0,-150],[120,0,-170],[60,0,-150],[0,0,-120],[-60,0,-150],[-120,0,-170],
+  [-180,0,-150],[-160,0,-90],[-120,0,-40],[-140,0,10],[-170,0,60],[-180,0,120],
+  [-150,0,160],[-80,0,170],[0,0,140],
+];
+
 // ── Helper for consistent item placement ──────────────────────────────────
 function standardItems(pts: [number,number,number][], boostCount = 3, coinCount = 8, chestCount = 4, rare = 1, legendary = true) {
   const step = 1 / boostCount;
@@ -219,5 +259,77 @@ export const TRACKS: TrackDef[] = [
     ...standardItems(gravityPoints, 5, 12, 5, 2),
     startPos: [0,1,200], startYaw: Math.PI/2,
     flavor: 'Reality warps on this unstable course. Trust nothing.',
+  },
+  {
+    id: 'phantom-arc', name: 'Phantom Arc', difficulty: 'MEDIUM', laps: 3,
+    primaryColor: '#77ddff', secondaryColor: '#ff77dd',
+    fogColor: '#070816', ambientColor: '#0c0a16',
+    points: phantomPoints,
+    ...standardItems(phantomPoints, 4, 10, 4),
+    startPos: [0,1,120], startYaw: Math.PI/2,
+    flavor: 'A spectral loop with graceful arcs and tighter inner bends.',
+  },
+  {
+    id: 'oasis-run', name: 'Oasis Run', difficulty: 'EASY', laps: 3,
+    primaryColor: '#00cc99', secondaryColor: '#ccff77',
+    fogColor: '#08130d', ambientColor: '#0c1710',
+    points: oasisPoints,
+    ...standardItems(oasisPoints, 3, 10, 4),
+    startPos: [0,1,180], startYaw: Math.PI/2,
+    flavor: 'Wide open ripples around the shimmering desert oasis.',
+  },
+  {
+    id: 'eclipse-loop', name: 'Eclipse Loop', difficulty: 'MEDIUM', laps: 3,
+    primaryColor: '#4444ff', secondaryColor: '#ffff44',
+    fogColor: '#081820', ambientColor: '#0f1020',
+    points: eclipsePoints,
+    ...standardItems(eclipsePoints, 4, 10, 4),
+    startPos: [0,1,220], startYaw: Math.PI/2,
+    flavor: 'A long high-speed oval with sweeping eclipsed arcs.',
+  },
+  {
+    id: 'tundra-bend', name: 'Tundra Bend', difficulty: 'MEDIUM', laps: 3,
+    primaryColor: '#88ffff', secondaryColor: '#88aaff',
+    fogColor: '#07101a', ambientColor: '#0a1320',
+    points: tundraPoints,
+    ...standardItems(tundraPoints, 4, 10, 4),
+    startPos: [0,1,140], startYaw: Math.PI/2,
+    flavor: 'Cold, long sweeps with alternating tight and wide turns.',
+  },
+  {
+    id: 'nebula-veil', name: 'Nebula Veil', difficulty: 'HARD', laps: 4,
+    primaryColor: '#aa88ff', secondaryColor: '#88ffcc',
+    fogColor: '#070814', ambientColor: '#090b18',
+    points: nebulaPoints,
+    ...standardItems(nebulaPoints, 5, 12, 5, 2),
+    startPos: [0,1,170], startYaw: Math.PI/2,
+    flavor: 'A dreamy, twisting path through the glowing nebula.',
+  },
+  {
+    id: 'canyon-charge', name: 'Canyon Charge', difficulty: 'HARD', laps: 4,
+    primaryColor: '#ff8844', secondaryColor: '#ff4444',
+    fogColor: '#120908', ambientColor: '#180d0a',
+    points: canyonPoints,
+    ...standardItems(canyonPoints, 5, 12, 5, 2),
+    startPos: [0,1,180], startYaw: Math.PI/2,
+    flavor: 'Rocky canyon rushes with fast straights and hard-edged turns.',
+  },
+  {
+    id: 'aurora-drive', name: 'Aurora Drive', difficulty: 'MEDIUM', laps: 3,
+    primaryColor: '#66ffdd', secondaryColor: '#4488ff',
+    fogColor: '#08111a', ambientColor: '#0b1220',
+    points: auroraPoints,
+    ...standardItems(auroraPoints, 4, 10, 4),
+    startPos: [0,1,130], startYaw: Math.PI/2,
+    flavor: 'Glacial ridges and hypnotic lights create a flowing route.',
+  },
+  {
+    id: 'inferno-circle', name: 'Inferno Circle', difficulty: 'HARD', laps: 4,
+    primaryColor: '#ff3333', secondaryColor: '#ffcc33',
+    fogColor: '#100505', ambientColor: '#1a0905',
+    points: infernoPoints,
+    ...standardItems(infernoPoints, 5, 12, 5, 2),
+    startPos: [0,1,140], startYaw: Math.PI/2,
+    flavor: 'A volatile infernal loop where speed meets perilous corners.',
   },
 ];
